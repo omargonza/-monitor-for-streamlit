@@ -530,6 +530,133 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
   .hero-title{ font-size: 2.2rem; }
   .hero-right{ grid-template-columns: 1fr; }
 }
+
+.mobile-dock-wrapper{
+  display: none;
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  width: calc(100% - 3rem);
+  max-width: 380px;
+}
+@media (max-width: 768px){
+  .mobile-dock-wrapper{ display: block; }
+  .stApp{ padding-bottom: 6rem !important; }
+  section[data-testid="stSidebar"]{ display: none !important; }
+}
+
+.mobile-dock{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, rgba(245,246,248,.96), rgba(238,240,242,.94));
+  border: 1px solid rgba(100,110,120,.12);
+  border-radius: 999px;
+  padding: .38rem .35rem;
+  box-shadow: 
+    0 8px 24px rgba(31,41,51,.11),
+    0 1px 3px rgba(31,41,51,.06),
+    inset 0 1px 0 rgba(255,255,255,.7);
+  backdrop-filter: blur(12px);
+  gap: .25rem;
+}
+.mobile-dock-item{
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: .58rem .7rem .52rem;
+  border-radius: 999px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s ease;
+  text-decoration: none;
+}
+.mobile-dock-item:hover{
+  color: var(--charcoal);
+  background: rgba(31,41,51,.04);
+}
+.mobile-dock-item.active{
+  background: linear-gradient(145deg, var(--charcoal), #2d3640);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(31,41,51,.2);
+}
+.mobile-dock-item.actions{
+  flex: 0 0 auto;
+  padding: .68rem 1.1rem .62rem;
+  background: linear-gradient(145deg, var(--charcoal), #2d3640);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(31,41,51,.22);
+  margin: 0 .15rem;
+}
+.mobile-dock-item.actions:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(31,41,51,.28);
+}
+.mobile-dock-icon{
+  display: block;
+  font-size: 1.05rem;
+  margin: 0 auto .1rem;
+}
+
+.actions-menu{
+  display: none;
+  position: fixed;
+  bottom: 5.8rem;
+  left: 50%;
+  transform: translateX(-50%) scale(.96);
+  width: calc(100% - 3rem);
+  max-width: 340px;
+  background: linear-gradient(165deg, rgba(255,255,255,.98), rgba(250,251,253,.96));
+  border: 1px solid rgba(180,175,165,.18);
+  border-radius: 20px;
+  padding: .6rem .5rem;
+  box-shadow: 
+    0 18px 48px rgba(31,41,51,.18),
+    0 6px 16px rgba(31,41,51,.1),
+    inset 0 1px 0 rgba(255,255,255,.8);
+  opacity: 0;
+  visibility: hidden;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  z-index: 99998;
+}
+.actions-menu.open{
+  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) scale(1);
+}
+.actions-menu-item{
+  display: block;
+  width: 100%;
+  padding: .72rem .85rem;
+  border-radius: 14px;
+  color: var(--charcoal);
+  font-size: .8rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all .16s ease;
+  border: none;
+  background: transparent;
+  margin: .12rem 0;
+}
+.actions-menu-item:hover{
+  background: rgba(31,41,51,.045);
+}
+.actions-menu-item:first-child{
+  margin-top: 0;
+}
+.actions-menu-divider{
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(100,110,120,.12), transparent);
+  margin: .5rem 0;
+}
 </style>
 """
 
@@ -922,6 +1049,23 @@ def pagina_dashboard():
 
 
 def pagina_operaciones():
+    accion = obtener_accion_actual()
+    opciones = [
+        "⚡ Actualización Rápida",
+        "➕ Alta de Producto",
+        "✏️ Editar Producto",
+        "✅ Activar/Desactivar"
+    ]
+    indice_default = 0
+    if accion == "rapid":
+        indice_default = 0
+    elif accion == "alta":
+        indice_default = 1
+    elif accion == "edit":
+        indice_default = 2
+    elif accion == "estado":
+        indice_default = 3
+    
     render_hero(
         "Operaciones",
         "Gestión manual de precios, productos y estado operativo del monitoreo.",
@@ -934,7 +1078,8 @@ def pagina_operaciones():
     )
     opcion = st.radio(
         "Seleccionar operación",
-        ["⚡ Actualización Rápida", "➕ Alta de Producto", "✏️ Editar Producto", "✅ Activar/Desactivar"],
+        opciones,
+        index=indice_default,
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -1128,10 +1273,116 @@ def pagina_configuracion():
             st.error("Error al guardar.")
 
 
+def obtener_pagina_actual() -> str:
+    params = st.query_params
+    if "page" in params:
+        return params["page"]
+    return "Dashboard"
+
+
+def obtener_accion_actual() -> str:
+    params = st.query_params
+    if "action" in params:
+        return params["action"]
+    return None
+
+
+def render_mobile_dock():
+    pagina_actual = obtener_pagina_actual()
+    submenu_items = [
+        ("Actualización rápida", "?page=Operaciones&action=rapid"),
+        ("Alta de producto", "?page=Operaciones&action=alta"),
+        ("Editar producto", "?page=Operaciones&action=edit"),
+        ("Activar / desactivar", "?page=Operaciones&action=estado"),
+    ]
+    submenu_html = ""
+    for label, href in submenu_items:
+        submenu_html += f'''
+        <button type="button" class="actions-menu-item" data-href="{href}">{label}</button>'''
+    
+    items = [
+        ("Panel", "Dashboard", "grid", ""),
+        ("Acciones", "Operaciones", "zap", "actions"),
+        ("Config", "Configuración", "settings", ""),
+    ]
+    dock_html = ""
+    for label, page, icon, extra_class in items:
+        href = f"?page={page}"
+        active = "active" if pagina_actual == page else ""
+        if extra_class == "actions":
+            dock_html += f'''
+        <button type="button" class="mobile-dock-item {extra_class} {active}" id="mobileActionsToggle">
+          <span class="mobile-dock-icon">{icon}</span>
+          <span>{label}</span>
+        </button>'''
+        else:
+            dock_html += f'''
+        <button type="button" class="mobile-dock-item {extra_class} {active}" data-href="{href}">
+          <span class="mobile-dock-icon">{icon}</span>
+          <span>{label}</span>
+        </button>'''
+    
+    st.markdown(
+        f'''
+        <div class="mobile-dock-wrapper">
+          <div class="actions-menu" id="actionsMenu">{submenu_html}</div>
+          <div class="mobile-dock">
+            {dock_html}
+          </div>
+        </div>
+        <script>
+        (function(){{
+          function goTo(href) {{
+            window.location.assign(href);
+          }}
+          document.querySelectorAll('.mobile-dock-item[data-href]').forEach(function(btn){{
+            btn.addEventListener('click', function(e){{
+              goTo(btn.getAttribute('data-href'));
+            }});
+          }});
+          document.querySelectorAll('.actions-menu-item[data-href]').forEach(function(btn){{
+            btn.addEventListener('click', function(e){{
+              goTo(btn.getAttribute('data-href'));
+            }});
+          }});
+          var toggleBtn = document.getElementById('mobileActionsToggle');
+          var menu = document.getElementById('actionsMenu');
+          if(toggleBtn && menu){{
+            var isOpen = false;
+            toggleBtn.addEventListener('click', function(e){{
+              e.stopPropagation();
+              isOpen = !isOpen;
+              if(isOpen){{
+                menu.classList.add('open');
+              }} else {{
+                menu.classList.remove('open');
+              }}
+            }});
+            document.addEventListener('click', function(e){{
+              if(isOpen && !e.target.closest('#mobileActionsToggle') && !e.target.closest('.actions-menu')){{
+                menu.classList.remove('open');
+                isOpen = false;
+              }}
+            }});
+          }}
+        }})();
+        </script>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+
 def main():
+    pagina_actual = obtener_pagina_actual()
+
     with st.sidebar:
         render_sidebar()
-        pagina = st.radio("Navegación", ["Dashboard", "Operaciones", "Configuración"], label_visibility="collapsed")
+        pagina = st.radio(
+            "navegación",
+            ["Dashboard", "Operaciones", "Configuración"],
+            index=["Dashboard", "Operaciones", "Configuración"].index(pagina_actual),
+            label_visibility="collapsed",
+        )
 
     if pagina == "Dashboard":
         pagina_dashboard()
@@ -1139,6 +1390,8 @@ def main():
         pagina_operaciones()
     elif pagina == "Configuración":
         pagina_configuracion()
+
+    render_mobile_dock()
 
 
 if __name__ == "__main__":
