@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .streamlit/secrets.toml
 .env
+.AGENTS.md
+.AUDITORIA_SFL_MONITOR.md
