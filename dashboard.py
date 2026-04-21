@@ -542,12 +542,46 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
   max-width: 380px;
 }
 @media (max-width: 768px){
-  .mobile-dock-wrapper{ display: block; }
-  .stApp{ padding-bottom: 6rem !important; }
   section[data-testid="stSidebar"]{ display: none !important; }
+  .stApp{ padding-bottom: 7rem !important; }
 }
 
-.mobile-dock{
+.mobile-native-dock{
+  display: none;
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 9999;
+}
+@media (max-width: 768px){
+  .mobile-native-dock{ display: block; }
+}
+
+.mobile-native-dock > div{
+  display: flex;
+  gap: .4rem;
+}
+.mobile-native-dock .stButton > button{
+  flex: 1;
+  min-height: 3.2rem;
+  font-size: .72rem !important;
+  padding: .4rem .5rem !important;
+  border-radius: 16px !important;
+  background: linear-gradient(160deg, rgba(245,246,248,.96), rgba(238,240,242,.94)) !important;
+  border: 1px solid rgba(100,110,120,.12) !important;
+  box-shadow: 0 6px 20px rgba(31,41,51,.1) !important;
+}
+.mobile-native-dock .stButton > button:focus{
+  box-shadow: 0 6px 20px rgba(31,41,51,.1), 0 0 0 2px var(--champagne) !important;
+}
+.mobile-native-dock .stButton > button[kind="primary"]{
+  background: linear-gradient(145deg, var(--charcoal), #2d3640) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.mobile-actions-panel{
   display: flex;
   align-items: center;
   justify-content: center;
@@ -656,6 +690,20 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(100,110,120,.12), transparent);
   margin: .5rem 0;
+}
+
+.mobile-actions-panel{
+  display: block;
+  background: linear-gradient(165deg, rgba(255,255,255,.98), rgba(250,251,253,.96));
+  border: 1px solid rgba(100,110,120,.12);
+  border-radius: 18px;
+  padding: .7rem .6rem;
+  margin-bottom: .6rem;
+  box-shadow: 0 8px 24px rgba(31,41,51,.1);
+}
+.mobile-actions-panel .stButton > button{
+  font-size: .72rem !important;
+  padding: .5rem .6rem !important;
 }
 </style>
 """
@@ -1049,22 +1097,27 @@ def pagina_dashboard():
 
 
 def pagina_operaciones():
-    accion = obtener_accion_actual()
+    accion_query = obtener_accion_actual()
     opciones = [
         "⚡ Actualización Rápida",
         "➕ Alta de Producto",
         "✏️ Editar Producto",
         "✅ Activar/Desactivar"
     ]
-    indice_default = 0
-    if accion == "rapid":
+    if "operacion_default" in st.session_state:
+        indice_default = st.session_state.operacion_default
+    else:
         indice_default = 0
-    elif accion == "alta":
-        indice_default = 1
-    elif accion == "edit":
-        indice_default = 2
-    elif accion == "estado":
-        indice_default = 3
+    
+    if accion_query in ["rapid", "alta", "edit", "estado"]:
+        if accion_query == "rapid":
+            indice_default = 0
+        elif accion_query == "alta":
+            indice_default = 1
+        elif accion_query == "edit":
+            indice_default = 2
+        elif accion_query == "estado":
+            indice_default = 3
     
     render_hero(
         "Operaciones",
@@ -1288,101 +1341,80 @@ def obtener_accion_actual() -> str:
 
 
 def render_mobile_dock():
-    pagina_actual = obtener_pagina_actual()
-    submenu_items = [
-        ("Actualización rápida", "?page=Operaciones&action=rapid"),
-        ("Alta de producto", "?page=Operaciones&action=alta"),
-        ("Editar producto", "?page=Operaciones&action=edit"),
-        ("Activar / desactivar", "?page=Operaciones&action=estado"),
-    ]
-    submenu_html = ""
-    for label, href in submenu_items:
-        submenu_html += f'''
-        <button type="button" class="actions-menu-item" data-href="{href}">{label}</button>'''
+    if "mobile_page" not in st.session_state:
+        st.session_state.mobile_page = "Dashboard"
+    if "mobile_actions_open" not in st.session_state:
+        st.session_state.mobile_actions_open = False
+    if "operacion_default" not in st.session_state:
+        st.session_state.operacion_default = 0
     
-    items = [
-        ("Panel", "Dashboard", "grid", ""),
-        ("Acciones", "Operaciones", "zap", "actions"),
-        ("Config", "Configuración", "settings", ""),
-    ]
-    dock_html = ""
-    for label, page, icon, extra_class in items:
-        href = f"?page={page}"
-        active = "active" if pagina_actual == page else ""
-        if extra_class == "actions":
-            dock_html += f'''
-        <button type="button" class="mobile-dock-item {extra_class} {active}" id="mobileActionsToggle">
-          <span class="mobile-dock-icon">{icon}</span>
-          <span>{label}</span>
-        </button>'''
-        else:
-            dock_html += f'''
-        <button type="button" class="mobile-dock-item {extra_class} {active}" data-href="{href}">
-          <span class="mobile-dock-icon">{icon}</span>
-          <span>{label}</span>
-        </button>'''
+    pagina_actual = st.session_state.mobile_page
     
-    st.markdown(
-        f'''
-        <div class="mobile-dock-wrapper">
-          <div class="actions-menu" id="actionsMenu">{submenu_html}</div>
-          <div class="mobile-dock">
-            {dock_html}
-          </div>
-        </div>
-        <script>
-        (function(){{
-          function goTo(href) {{
-            window.location.assign(href);
-          }}
-          document.querySelectorAll('.mobile-dock-item[data-href]').forEach(function(btn){{
-            btn.addEventListener('click', function(e){{
-              goTo(btn.getAttribute('data-href'));
-            }});
-          }});
-          document.querySelectorAll('.actions-menu-item[data-href]').forEach(function(btn){{
-            btn.addEventListener('click', function(e){{
-              goTo(btn.getAttribute('data-href'));
-            }});
-          }});
-          var toggleBtn = document.getElementById('mobileActionsToggle');
-          var menu = document.getElementById('actionsMenu');
-          if(toggleBtn && menu){{
-            var isOpen = false;
-            toggleBtn.addEventListener('click', function(e){{
-              e.stopPropagation();
-              isOpen = !isOpen;
-              if(isOpen){{
-                menu.classList.add('open');
-              }} else {{
-                menu.classList.remove('open');
-              }}
-            }});
-            document.addEventListener('click', function(e){{
-              if(isOpen && !e.target.closest('#mobileActionsToggle') && !e.target.closest('.actions-menu')){{
-                menu.classList.remove('open');
-                isOpen = false;
-              }}
-            }});
-          }}
-        }})();
-        </script>
-        ''',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="mobile-native-dock">', unsafe_allow_html=True)
+    
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c1:
+        if st.button("Panel", use_container_width=True, type="primary" if pagina_actual == "Dashboard" else "secondary"):
+            st.session_state.mobile_page = "Dashboard"
+            st.session_state.mobile_actions_open = False
+            st.rerun()
+    with c2:
+        label_btn = "Acciones" if not st.session_state.mobile_actions_open else "Cerrar"
+        tipo_btn = "secondary"
+        if st.button(label_btn, use_container_width=True, type=tipo_btn):
+            st.session_state.mobile_actions_open = not st.session_state.mobile_actions_open
+            st.rerun()
+    with c3:
+        if st.button("Config", use_container_width=True, type="primary" if pagina_actual == "Configuración" else "secondary"):
+            st.session_state.mobile_page = "Configuración"
+            st.session_state.mobile_actions_open = False
+            st.rerun()
+    
+    if st.session_state.mobile_actions_open:
+        st.markdown('<div class="mobile-actions-panel">', unsafe_allow_html=True)
+        
+        c_act1, c_act2 = st.columns(2)
+        with c_act1:
+            if st.button("⚡ Actualización rápida", use_container_width=True):
+                st.session_state.mobile_page = "Operaciones"
+                st.session_state.operacion_default = 0
+                st.session_state.mobile_actions_open = False
+                st.rerun()
+        with c_act2:
+            if st.button("➕ Alta de producto", use_container_width=True):
+                st.session_state.mobile_page = "Operaciones"
+                st.session_state.operacion_default = 1
+                st.session_state.mobile_actions_open = False
+                st.rerun()
+        
+        c_act3, c_act4 = st.columns(2)
+        with c_act3:
+            if st.button("✏️ Editar producto", use_container_width=True):
+                st.session_state.mobile_page = "Operaciones"
+                st.session_state.operacion_default = 2
+                st.session_state.mobile_actions_open = False
+                st.rerun()
+        with c_act4:
+            if st.button("✅ Activar/Desactivar", use_container_width=True):
+                st.session_state.mobile_page = "Operaciones"
+                st.session_state.operacion_default = 3
+                st.session_state.mobile_actions_open = False
+                st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.session_state.current_page = st.session_state.mobile_page
 
 
 def main():
-    pagina_actual = obtener_pagina_actual()
-
-    with st.sidebar:
-        render_sidebar()
-        pagina = st.radio(
-            "navegación",
-            ["Dashboard", "Operaciones", "Configuración"],
-            index=["Dashboard", "Operaciones", "Configuración"].index(pagina_actual),
-            label_visibility="collapsed",
-        )
+    if "mobile_page" not in st.session_state:
+        st.session_state.mobile_page = "Dashboard"
+    
+    render_mobile_dock()
+    
+    pagina = st.session_state.mobile_page
 
     if pagina == "Dashboard":
         pagina_dashboard()
@@ -1390,8 +1422,6 @@ def main():
         pagina_operaciones()
     elif pagina == "Configuración":
         pagina_configuracion()
-
-    render_mobile_dock()
 
 
 if __name__ == "__main__":
