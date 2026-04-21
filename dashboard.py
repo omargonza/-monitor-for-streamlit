@@ -560,25 +560,33 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
 
 .mobile-native-dock > div{
   display: flex;
-  gap: .4rem;
+  gap: .5rem;
 }
 .mobile-native-dock .stButton > button{
   flex: 1;
-  min-height: 3.2rem;
-  font-size: .72rem !important;
-  padding: .4rem .5rem !important;
-  border-radius: 16px !important;
-  background: linear-gradient(160deg, rgba(245,246,248,.96), rgba(238,240,242,.94)) !important;
-  border: 1px solid rgba(100,110,120,.12) !important;
-  box-shadow: 0 6px 20px rgba(31,41,51,.1) !important;
+  min-height: 3.4rem;
+  font-size: .74rem !important;
+  font-weight: 600 !important;
+  padding: .45rem .5rem !important;
+  border-radius: 18px !important;
+  background: linear-gradient(165deg, rgba(255,255,255,.96), rgba(250,251,253,.94)) !important;
+  border: 1px solid rgba(100,110,120,.14) !important;
+  color: var(--muted) !important;
+  box-shadow: 0 4px 16px rgba(31,41,51,.08) !important;
+  transition: all .15s ease !important;
+}
+.mobile-native-dock .stButton > button:hover{
+  border-color: rgba(62,74,89,.25) !important;
+  box-shadow: 0 6px 20px rgba(31,41,51,.12) !important;
 }
 .mobile-native-dock .stButton > button:focus{
-  box-shadow: 0 6px 20px rgba(31,41,51,.1), 0 0 0 2px var(--champagne) !important;
+  box-shadow: 0 6px 20px rgba(31,41,51,.12), 0 0 0 2px var(--champagne) !important;
 }
 .mobile-native-dock .stButton > button[kind="primary"]{
-  background: linear-gradient(145deg, var(--charcoal), #2d3640) !important;
+  background: linear-gradient(150deg, var(--charcoal), #2d3640) !important;
   color: #fff !important;
   border: none !important;
+  box-shadow: 0 6px 20px rgba(31,41,51,.18) !important;
 }
 
 .mobile-actions-panel{
@@ -694,16 +702,27 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
 
 .mobile-actions-panel{
   display: block;
-  background: linear-gradient(165deg, rgba(255,255,255,.98), rgba(250,251,253,.96));
-  border: 1px solid rgba(100,110,120,.12);
-  border-radius: 18px;
-  padding: .7rem .6rem;
+  background: linear-gradient(165deg, rgba(255,255,255,.97), rgba(250,251,253,.95));
+  border: 1px solid rgba(100,110,120,.14);
+  border-radius: 16px;
+  padding: .6rem .5rem;
   margin-bottom: .6rem;
   box-shadow: 0 8px 24px rgba(31,41,51,.1);
 }
+.mobile-actions-panel-title{
+  font-size: .64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--champagne);
+  margin-bottom: .5rem;
+  text-align: center;
+}
 .mobile-actions-panel .stButton > button{
-  font-size: .72rem !important;
-  padding: .5rem .6rem !important;
+  font-size: .7rem !important;
+  padding: .45rem .5rem !important;
+  border-radius: 14px !important;
+  font-weight: 600 !important;
 }
 </style>
 """
@@ -919,7 +938,7 @@ def pagina_dashboard():
         ("sin dato", str(resumen.get("sin_dato", 0)), "faltante competencia"),
     ]
     render_hero(
-        "SFL Monitor",
+        "CSL Monitor",
         "Monitoreo competitivo y rentabilidad con lectura comercial ejecutiva.",
         chips,
     )
@@ -990,7 +1009,7 @@ def pagina_dashboard():
                 st.caption(f"{fecha} - **{titulo}** - {detalle}")
 
     render_section_header(
-        "SFL Monitor",
+        "CSL Monitor",
         "Vista comercial",
         "Filtrá, ordená y leé rápidamente la situación competitiva de los productos monitoreados.",
         f"{len(df)} registros",
@@ -1372,6 +1391,7 @@ def render_mobile_dock():
     
     if st.session_state.mobile_actions_open:
         st.markdown('<div class="mobile-actions-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="mobile-actions-panel-title">Acciones rápidas</div>', unsafe_allow_html=True)
         
         c_act1, c_act2 = st.columns(2)
         with c_act1:
