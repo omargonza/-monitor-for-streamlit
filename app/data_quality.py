@@ -253,7 +253,24 @@ def cargar_productos_con_calidad( solo_activos: bool = True, incluir_plantillas:
     """
     from app import config
     
-    df = pd.read_excel(config.ARCHIVO_EXCEL, sheet_name=config.HOJAS["MONITOREO"])
+    try:
+        df = pd.read_excel(config.ARCHIVO_EXCEL, sheet_name=config.HOJAS["MONITOREO"])
+    except Exception:
+        df = pd.DataFrame()
+    
+    if df.empty:
+        return {
+            "df": pd.DataFrame(),
+            "warnings": [],
+            "errors": [],
+            "stats": {
+                "filas_total": 0,
+                "filas_activas": 0,
+                "filas_plantilla": 0,
+                "warnings_count": 0,
+                "errors_count": 0,
+            }
+        }
     
     result = procesar_calidad_datos(df, incluir_plantillas=incluir_plantillas)
     

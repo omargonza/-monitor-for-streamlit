@@ -194,6 +194,18 @@ def generar_accion_recomendada(estado: str, precio_comp: float, margen_real: flo
 
 def procesar_productos(df: pd.DataFrame, config_dict: dict) -> pd.DataFrame:
     """Procesa todos los productos y agrega las métricas."""
+    if df.empty:
+        return pd.DataFrame(columns=[
+            "codigo_reyes", "descripcion_reyes", "competidor", "costo_usd",
+            "precio_reyes_ars", "precio_competidor_actual_ars", "margen_minimo_pct",
+            "costo_ars", "ganancia_ars", "ganancia_usd", "margen_real_pct",
+            "diferencia_vs_competidor_pct", "variacion_competidor_pct",
+            "precio_minimo_rentable_ars", "precio_sugerido_competitivo_ars",
+            "estado", "accion_recomendada", "motivo_accion", "riesgo_comercial",
+            "oportunidad_comercial", "necesita_dato_competidor", "margen_sano",
+            "fuera_de_rango", "activo"
+        ])
+    
     dolar_ref = obtener_dolar(config_dict)
     
     resultados = []

@@ -62,6 +62,17 @@ def obtener_resumen() -> dict:
     dolar = calculations.obtener_dolar(cfg)
     dolar_modo = cfg.get("dolar_modo", "oficial").upper()
     
+    if df.empty or "estado" not in df.columns:
+        return {
+            "total_productos": 0,
+            "alertas_rojas": 0,
+            "alertas_amarillas": 0,
+            "productos_verdes": 0,
+            "sin_dato": 0,
+            "dolar_actual": dolar,
+            "dolar_modo": dolar_modo,
+        }
+    
     total = len(df)
     rojos = len(df[df["estado"] == "ROJO"])
     amarillos = len(df[df["estado"] == "AMARILLO"])
@@ -83,8 +94,11 @@ def obtener_prioridades() -> pd.DataFrame:
     """Obtiene productos prioritarios para revisar."""
     df = obtener_productos()
     
-    if df.empty:
-        return df
+    if df.empty or "estado" not in df.columns:
+        return pd.DataFrame()
+    
+    if "margen_real_pct" not in df.columns or "diferencia_vs_competidor_pct" not in df.columns:
+        return pd.DataFrame()
     
     df = df.sort_values(by=["margen_real_pct", "diferencia_vs_competidor_pct"], ascending=[True, True])
     
@@ -94,6 +108,10 @@ def obtener_prioridades() -> pd.DataFrame:
 def obtener_productos_por_estado(estado: str) -> pd.DataFrame:
     """Obtiene productos por estado."""
     df = obtener_productos()
+    
+    if df.empty or "estado" not in df.columns:
+        return pd.DataFrame()
+    
     return df[df["estado"] == estado]
 
 

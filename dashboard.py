@@ -4,9 +4,13 @@ CSL Monitor - Dashboard UI refined
 """
 import streamlit as st
 import pandas as pd
-from app import dashboard_data, excel_service, calculations
+from app import dashboard_data, excel_service, calculations, config
 
 st.set_page_config(page_title="CSL Monitor", page_icon="◈", layout="wide")
+
+# Autenticación: inicializar sesión
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
 CSS = """
 <style>
@@ -653,6 +657,145 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked
   box-shadow: 0 2px 12px rgba(31,41,51,.06) !important;
   transform: none !important;
 }
+
+/* GUIA DE LECTURA / HELP */
+.guide-shell{
+  background: rgba(255,255,255,.88) !important;
+  border: 1px solid rgba(100,110,120,.12) !important;
+  border-radius: 16px !important;
+  padding: .9rem 1rem !important;
+  margin-bottom: 1rem !important;
+  box-shadow: 0 4px 14px rgba(31,41,51,.06) !important;
+}
+.guide-title{
+  font-size: .7rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .14em !important;
+  color: var(--champagne) !important;
+  margin-bottom: .5rem !important;
+}
+.guide-intro{
+  font-size: .82rem !important;
+  color: var(--muted) !important;
+  margin-bottom: .65rem !important;
+  line-height: 1.45 !important;
+}
+.guide-states{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: .6rem !important;
+}
+.guide-state-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .5rem !important;
+  border-radius: 8px !important;
+  font-size: .7rem !important;
+  font-weight: 600 !important;
+}
+.guide-state-badge.green{ background: rgba(46,111,96,.1); color: var(--green); }
+.guide-state-badge.amber{ background: rgba(168,132,58,.1); color: var(--amber); }
+.guide-state-badge.red{ background: rgba(138,75,75,.1); color: var(--red); }
+.guide-state-badge.gray{ background: rgba(123,135,148,.1); color: var(--gray); }
+.guide-state-badge .dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.guide-state-desc{
+  font-size: .75rem !important;
+  color: var(--charcoal) !important;
+  font-weight: 500 !important;
+}
+.guide-tip{
+  background: rgba(31,41,51,.04) !important;
+  border-left: 3px solid var(--champagne) !important;
+  padding: .5rem .7rem !important;
+  border-radius: 0 8px 8px 0 !important;
+  font-size: .75rem !important;
+  color: var(--charcoal) !important;
+  font-style: italic;
+}
+.guide-tip-label{
+  font-size: .62rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--champagne);
+  margin-bottom: .2rem !important;
+}
+.guide-section{
+  margin-top: .7rem !important;
+}
+.guide-section-title{
+  font-size: .68rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted-2);
+  margin-bottom: .4rem !important;
+}
+.guide-list{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.guide-list li{
+  font-size: .75rem;
+  color: var(--charcoal);
+  padding: .25rem 0;
+  border-bottom: 1px solid rgba(214,218,225,.5);
+}
+.guide-list li:last-child{
+  border-bottom: none;
+}
+.help-chip{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(191,166,122,.15);
+  color: var(--champagne);
+  font-size: .6rem;
+  font-weight: 700;
+  cursor: help;
+  margin-left: .25rem;
+  vertical-align: middle;
+}
+
+/* FOOTER conurbaDEV */
+.footer-conurbadev{
+  margin-top: 3rem;
+  padding: 2rem 1rem 2.5rem;
+  border-top: 1px solid var(--line-2);
+  text-align: center;
+  background: var(--surface-2);
+}
+.footer-conurbadev-content{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+}
+.footer-conurbadev-logo{
+  height: 28px;
+  opacity: .7;
+}
+.footer-conurbadev-text{
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 500;
+}
+.footer-conurbadev-subtext{
+  color: var(--muted-2);
+  font-size: .72rem;
+}
 </style>
 """
 
@@ -713,6 +856,65 @@ def formato_pct(valor):
     return f"{numero:.1f}%"
 
 
+def render_login():
+    """Pantalla de login simple para admin."""
+    st.markdown("""
+    <div class="hero" style="min-height: 320px;">
+      <div class="hero-grid" style="justify-items: center;">
+        <div class="hero-left" style="text-align: center;">
+          <div class="hero-kicker">CSL MONITOR</div>
+          <div style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: .5rem;">
+            Pricing Desk Reyes
+          </div>
+          <div style="color: rgba(255,255,255,.7); font-size: .95rem;">
+            Ingresá para acceder al monitor
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.container(border=True):
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            # Obtener credenciales (puede lanzar error si no están configuradas)
+            try:
+                usuario_correcto, password_correcto = config.obtener_credenciales()
+            except ValueError as e:
+                st.error(str(e))
+                st.stop()
+            
+            st.markdown("**Usuario**")
+            usuario = st.text_input("Usuario", label_visibility="collapsed", placeholder="Usuario")
+            st.markdown("**Contraseña**")
+            password = st.text_input("Contraseña", label_visibility="collapsed", type="password", placeholder="Contraseña")
+            
+            if st.button("Ingresar", type="primary", use_container_width=True):
+                if usuario == usuario_correcto and password == password_correcto:
+                    st.session_state.autenticado = True
+                    st.rerun()
+                else:
+                    st.error("Credenciales incorrectas")
+            
+            st.caption("Acceso restringido a usuarios autorizados.")
+
+
+def render_footer():
+    """Footer global con branding conurbaDEV."""
+    import os
+    logo_path = config.LOGO_CONURBADEV
+    
+    st.markdown('<div class="footer-conurbadev">', unsafe_allow_html=True)
+    
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=100, output_format="PNG")
+    
+    st.markdown('<div class="footer-conurbadev-text">Desarrollado por conurbaDEV</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer-conurbadev-subtext">Soluciones digitales a medida</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 def obtener_producto_por_clave(df: pd.DataFrame, clave: str) -> tuple:
     if not clave or clave == "Seleccionar...":
         return None, None, None
@@ -770,6 +972,11 @@ def render_sidebar():
         """,
         unsafe_allow_html=True,
     )
+    
+    # Botón cerrar sesión
+    if st.button("Cerrar sesión", use_container_width=True):
+        st.session_state.autenticado = False
+        st.rerun()
 
 
 def render_hero(title: str, subtitle: str, chips: list[tuple[str, str, str]]):
@@ -858,6 +1065,62 @@ def render_kpi(label: str, value: str, note: str = ""):
     )
 
 
+def render_guia_lectura():
+    from app import ayuda_contextual
+    
+    guia_html = """
+    <div class="guide-shell">
+      <div class="guide-title">Cómo leer esta pantalla</div>
+      <div class="guide-intro">
+        <strong>Orden de lectura:</strong> 1. KPIs, 2. Alertas, 3. Prioridades, 4. Tabla
+      </div>
+      <div class="guide-states">
+        <div class="guide-state-badge green"><span class="dot"></span> VERDE</div>
+        <div class="guide-state-badge amber"><span class="dot"></span> AMARILLO</div>
+        <div class="guide-state-badge red"><span class="dot"></span> ROJO</div>
+        <div class="guide-state-badge gray"><span class="dot"></span> SIN DATO</div>
+      </div>
+      <div class="guide-state-desc">
+        <strong>Verde:</strong> Rentable y competitivo. Mantener. &nbsp;
+        <strong>Amarillo:</strong> Rentable pero encima del competidor. Revisar. &nbsp;
+        <strong>Rojo:</strong> Margen bajo o muy encima. Requiere decisión. &nbsp;
+        <strong>Sin dato:</strong> Falta precio del competidor. Cargar.
+      </div>
+      <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted);font-style:italic;">
+        No siempre conviene igualar al más barato. La prioridad es sostener competitividad con rentabilidad.
+      </div>
+    </div>
+    """
+    st.markdown(guia_html, unsafe_allow_html=True)
+    
+    with st.expander("📋 Glosario rápido de columnas"):
+        col_help = [
+            ("Precio propio", ayuda_contextual.obtener_tooltip_columna("precio_reyes_ars")),
+            ("Precio competidor", ayuda_contextual.obtener_tooltip_columna("precio_competidor_actual_ars")),
+            ("Dif. vs competidor", ayuda_contextual.obtener_tooltip_columna("diferencia_vs_competidor_pct")),
+            ("Margen actual", ayuda_contextual.obtener_tooltip_columna("margen_real_pct")),
+            ("Margen mínimo", ayuda_contextual.obtener_tooltip_columna("margen_minimo_pct")),
+            ("Qué revisar", ayuda_contextual.obtener_tooltip_columna("accion_recomendada")),
+        ]
+        for col_label, col_tooltip in col_help:
+            st.markdown(f"**{col_label}**: {col_tooltip}")
+    
+    tips = ayuda_contextual.obtener_todos_tips_fijos()
+    tips_html = ""
+    for tip in tips[:5]:
+        tips_html += f"<li>{tip}</li>"
+    
+    consejos_html = f"""
+    <div class="guide-shell" style="margin-top:.6rem;">
+      <div class="guide-title">Consejos comerciales</div>
+      <ul class="guide-list">
+        {tips_html}
+      </ul>
+    </div>
+    """
+    st.markdown(consejos_html, unsafe_allow_html=True)
+
+
 def pagina_dashboard():
     resumen = dashboard_data.obtener_resumen()
     chips = [
@@ -886,6 +1149,26 @@ def pagina_dashboard():
             render_kpi(item[0], str(item[1]), item[2])
 
     df, quality = dashboard_data.obtener_productos_con_calidad()
+
+    if df.empty or "estado" not in df.columns:
+        with st.container(border=True):
+            st.markdown("""
+            ### Todavía no hay productos monitoreados
+            
+            La base está vacía. Para comenzar:
+            
+            1. **Importar desde Excel** (recomendado para cargar varios productos)
+               - Descargá la plantilla desde Operaciones → Importar desde Excel
+               - Completá tus productos ysubila
+               - O usá tu planilla propia adaptada
+            
+            2. **Alta manual** (para agregar uno por vez)
+               - Operaciones → Alta de Producto
+               - Completá los datos del producto
+            
+            Una vez que haya productos, acá verás el dashboard completo con KPIs, alertas y prioridades.
+            """)
+        return
 
     stats_calidad = dashboard_data.obtener_estadisticas_calidad()
 
@@ -936,6 +1219,8 @@ def pagina_dashboard():
                     detalle = f"{campo}: {anterior} -> {nuevo}"
 
                 st.caption(f"{fecha} - **{titulo}** - {detalle}")
+
+    render_guia_lectura()
 
     render_section_header(
         "CSL Monitor",
@@ -992,7 +1277,7 @@ def pagina_dashboard():
     df_tbl["precio_competidor_actual_ars"] = df_tbl["precio_competidor_actual_ars"].apply(formato_moneda)
     df_tbl["diferencia_vs_competidor_pct"] = df_tbl["diferencia_vs_competidor_pct"].apply(formato_pct)
     df_tbl["margen_real_pct"] = df_tbl["margen_real_pct"].apply(formato_pct)
-    df_tbl.columns = ["Código", "Descripción", "Competidor", "Precio Reyes", "Precio Comp.", "Diferencia", "Margen", "Estado", "Acción", "Motivo"]
+    df_tbl.columns = ["Codigo", "Descripcion", "Competidor", "Precio propio", "Precio competidor", "Dif. vs competidor", "Margen actual", "Estado", "Que revisar", "Por que"]
 
     csv = df_tbl.to_csv(index=False).encode("utf-8")
     actions = '<span>Descarga disponible</span>'
@@ -1010,7 +1295,7 @@ def pagina_dashboard():
 
     ca, cb = st.columns(2)
     with ca:
-        st.markdown('<div class="alert-card"><div class="data-shell-title">Alertas</div><div class="data-shell-copy">Productos que necesitan revisión inmediata o dato faltante.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="alert-card"><div class="data-shell-title">Alertas</div><div class="data-shell-copy">Productos que necesitan revision inmediata o dato faltante.</div><div style="margin-top:.4rem;font-size:.68rem;color:var(--muted-2);">Primero Rojo, luego Sin dato. No todas requieren accion: validen siempre el impacto en margen.</div>', unsafe_allow_html=True)
         rojas = df[df["estado"] == "ROJO"]
         if rojas.empty:
             st.info("Sin alertas rojas.")
@@ -1024,7 +1309,7 @@ def pagina_dashboard():
         st.markdown("</div>", unsafe_allow_html=True)
 
     with cb:
-        st.markdown('<div class="alert-card"><div class="data-shell-title">Prioridades</div><div class="data-shell-copy">Orden sugerido de revisión comercial.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="alert-card"><div class="data-shell-title">Prioridades</div><div class="data-shell-copy">Orden sugerido de revision comercial.</div><div style="margin-top:.4rem;font-size:.68rem;color:var(--muted-2);">Orden: 1.Rojo, 2.Sin dato, 3.Amarillo, 4.Verde.</div>', unsafe_allow_html=True)
         df_prior = df.sort_values(["estado", "margen_real_pct"], ascending=[True, True]).head(5)
         for i, (_, r) in enumerate(df_prior.iterrows(), start=1):
             causa = "Alerta roja" if r["estado"] == "ROJO" else ("Sin precio competidor" if r["estado"] == "SIN_DATO" else "Margen ajustado")
@@ -1050,14 +1335,15 @@ def pagina_operaciones():
         "⚡ Actualización Rápida",
         "➕ Alta de Producto",
         "✏️ Editar Producto",
-        "✅ Activar/Desactivar"
+        "✅ Activar/Desactivar",
+        "📥 Importar desde Excel"
     ]
     if "operacion_default" in st.session_state:
         indice_default = st.session_state.operacion_default
     else:
         indice_default = 0
     
-    if accion_query in ["rapid", "alta", "edit", "estado"]:
+    if accion_query in ["rapid", "alta", "edit", "estado", "import"]:
         if accion_query == "rapid":
             indice_default = 0
         elif accion_query == "alta":
@@ -1066,6 +1352,8 @@ def pagina_operaciones():
             indice_default = 2
         elif accion_query == "estado":
             indice_default = 3
+        elif accion_query == "import":
+            indice_default = 4
     
     render_hero(
         "Operaciones",
@@ -1087,6 +1375,7 @@ def pagina_operaciones():
 
     if opcion == "⚡ Actualización Rápida":
         render_section_header("Operaciones", "Actualización rápida", "Registrá un nuevo precio competidor sobre un producto ya monitoreado.")
+        st.caption("Usá esta opción para actualizar rápido precios del competidor sin modificar el resto del producto. Es ideal para el seguimiento diario.")
         df = excel_service.obtener_productos_todos()
         df = filtrar_productos_reales(df)
         cfg = excel_service.cargar_config()
@@ -1125,6 +1414,7 @@ def pagina_operaciones():
 
     elif opcion == "➕ Alta de Producto":
         render_section_header("Operaciones", "Alta de producto", "Agregá un producto nuevo a la base de monitoreo.")
+        st.caption("Los datos indispensables son: codigo, descripcion, competidor, costo USD y precio propio. Sin el margen minimo correcto la lectura de la app pierde valor.")
         c1, c2 = st.columns(2)
         with c1:
             codigo = st.text_input("Código Reyes *")
@@ -1163,6 +1453,7 @@ def pagina_operaciones():
 
     elif opcion == "✏️ Editar Producto":
         render_section_header("Operaciones", "Editar producto", "Modificá campos principales de un producto existente.")
+        st.caption("Conviene editar cuando cambia el costo, el precio propio o el margen minimo. Modificar estos datos cambia la lectura comercial del producto.")
         df = excel_service.obtener_productos_todos()
         df = filtrar_productos_reales(df)
         cfg = excel_service.cargar_config()
@@ -1202,6 +1493,7 @@ def pagina_operaciones():
 
     elif opcion == "✅ Activar/Desactivar":
         render_section_header("Operaciones", "Estado de producto", "Activá o desactivá registros dentro del monitoreo.")
+        st.caption("Un producto desactivado sale del monitoreo operativo. No conviene desactivar solo porque este en rojo: primero revisá la causa.")
         f1, f2 = st.columns([1.2, 1.8])
         with f1:
             filtro_sel = st.selectbox("Filtrar por estado", ["Todos", "Activos", "Inactivos"])
@@ -1239,12 +1531,192 @@ def pagina_operaciones():
                     else:
                         st.error("Error.")
 
+    elif opcion == "📥 Importar desde Excel":
+        render_section_header("Operaciones", "Importar productos", "Cargá varios productos a la vez desde un archivo Excel.")
+        st.caption("Es ideal para cargar tu lista inicial o para agregar muchos productos de una sola vez.")
+
+        with st.expander("ℹ️ ¿Cómo se obtiene el precio del competidor?"):
+            st.markdown("""
+            **El precio del competidor NO se obtiene automáticamente.**
+            
+            El flujo es:
+            1. Primero relevás manualmente los precios de la competencia (por fuera de la app)
+            2. Completás esos datos en la columna `precio_competidor_actual_ars` de la plantilla
+            3. Importás el archivo
+            4. La app automáticamente compara tu precio con el competidor y calcula diferencias, márgenes, estados y recomendaciones
+
+            Si dejás la columna vacía, el producto se importa como **"SIN DATO"**.
+            """)
+        
+        with st.expander("📚 Guía práctica"):
+            with st.container(border=True):
+                st.markdown("**¿Tengo que usar solo esta plantilla?**")
+                st.markdown("""
+                **No.** Podés usar la plantilla descargable de la app como modelo recomendado, pero si ya trabajás con una planilla propia, también podés usarla.
+                
+                **La plantilla de la app:**
+                - Sirve como formato modelo
+                - Ayuda a evitar errores
+                - Muestra exactamente qué columnas necesita la importación
+                
+                **Tu planilla propia:**
+                - También puede servir para importar
+                - Siempre que respete la estructura esperada (mismos nombres de columnas)
+                - Si tiene otros nombres o le faltan campos, hay que adaptarla antes
+                
+                **¿Qué conviene operativamente?**
+                - Si ya tenés una planilla de trabajo, no hace falta volver a cargar todo a mano
+                - Usá la plantilla de la app como referencia
+                - Copiá o adaptá tu información existente
+                - Subí ese archivo ya acomodado al formato correcto
+                """)
+                st.info("No necesitás volver a cargar todos los productos manualmente. Si ya usás una planilla propia, adaptala al formato requerido y usala para importar.")
+
+            col_guide1, col_guide2 = st.columns(2)
+            with col_guide1:
+                with st.container(border=True):
+                    st.markdown("**Paso a paso recomendado**")
+                    st.markdown("""
+                    1. Descargá plantilla limpia (o prepará la tuya)
+                    2. Completá datos de tus productos
+                    3. Agregá precios competidor si los tenés
+                    4. Subí y previsualizá
+                    5. Confirmá la importación
+                    6. Revisá el Dashboard
+                    """)
+            
+            with col_guide2:
+                with st.container(border=True):
+                    st.markdown("**Buenas prácticas**")
+                    st.markdown("""
+                    - Usá códigos consistentes con tu sistema
+                    - Verificá que el costo USD sea correcto
+                    - El margen mínimo define tu rentabilidad objetivo
+                    - Dejá activo="SI" para productos vigentes
+                    - No pongas el mismo producto+competidor dos veces
+                    """)
+                
+                with st.container(border=True):
+                    st.markdown("**Qué revisar después de importar**")
+                    st.markdown("""
+                    - Productos en ROJO: margen bajo mínimo
+                    - Productos en AMARILLO: margen ajustado
+                    - Productos SIN DATO: falta precio competidor
+                    - Productos VERDES: competitivos y rentables
+                    """)
+
+        with st.container(border=True):
+            st.markdown("### 📥 Bloque 1: Descargar plantilla")
+            st.caption("Descargá la plantilla, completá los datos y subila nuevamente.")
+            excel_plantilla = excel_service.generar_plantilla_importacion()
+            st.download_button(
+                label="⬇️ Descargar plantilla Excel",
+                data=excel_plantilla,
+                file_name="plantilla_importacion_productos.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+        with st.container(border=True):
+            st.markdown("### 📤 Bloque 2: Subir archivo")
+            st.caption("Seleccioná el archivo Excel (.xlsx) o CSV que completaste.")
+            archivo = st.file_uploader("Seleccionar archivo", type=["xlsx", "csv"], label_visibility="collapsed")
+
+        if archivo:
+            try:
+                if archivo.name.endswith(".csv"):
+                    df_import = pd.read_csv(archivo)
+                else:
+                    df_import = pd.read_excel(archivo)
+
+                with st.container(border=True):
+                    st.markdown("### 👁️ Bloque 3: Vista previa")
+                    st.caption(f"Total de filas en el archivo: {len(df_import)}")
+                    st.dataframe(df_import.head(10), use_container_width=True)
+
+                with st.container(border=True):
+                    st.markdown("### ✅ Bloque 4: Confirmar importación")
+                    st.caption("Verificá los datos antes de importar. No se puede deshacer.")
+                    
+                    hay_duplicados = False
+                    if "codigo_reyes" in df_import.columns and "competidor" in df_import.columns:
+                        df_import["clave"] = df_import["codigo_reyes"].astype(str).str.strip().str.lower() + "||" + df_import["competidor"].astype(str).str.strip().str.lower()
+                        duplicados = df_import[df_import.duplicated(subset=["clave"], keep=False)]
+                        if not duplicados.empty:
+                            hay_duplicados = True
+                            st.warning(f"⚠️ Se detectaron {len(duplicados)} filas con productos duplicados en el mismo archivo. Cada producto+competidor debe aparecer una sola vez.")
+                            with st.expander("Ver duplicados"):
+                                st.dataframe(duplicados[["codigo_reyes", "competidor"]], use_container_width=True)
+                    
+                    col_confirm1, col_confirm2 = st.columns([1, 2])
+                    with col_confirm1:
+                        st.caption("Columnas detectadas:")
+                        st.write(", ".join(df_import.columns.tolist()[:5]) + ("..." if len(df_import.columns) > 5 else ""))
+                    with col_confirm2:
+                        confirmar = st.checkbox("Confirmo que los datos son correctos", value=False)
+
+                    if st.button("🚀 Importar productos", type="primary", disabled=not confirmar or hay_duplicados):
+                        resultado = excel_service.importar_productos_desde_excel(df_import)
+
+                        with st.container(border=True):
+                            st.markdown("### 📊 Bloque 5: Resultado de importación")
+                            
+                            r = resultado
+                            c1, c2, c3, c4 = st.columns(4)
+                            with c1:
+                                st.metric("Total filas", r["total"])
+                            with c2:
+                                st.metric("Nuevos", r["nuevos"])
+                            with c3:
+                                st.metric("Actualizados", r["actualizados"])
+                            with c4:
+                                st.metric("Errores", r["errores"])
+                            
+                            c5, c6 = st.columns(2)
+                            with c5:
+                                st.metric("Sin precio competidor", r.get("sin_dato", 0))
+                            with c6:
+                                st.metric("Duplicados en archivo", r.get("duplicados", 0))
+
+                            if r["nuevos"] > 0 or r["actualizados"] > 0:
+                                st.success("✅ Importación completada correctamente.")
+                            elif r["errores"] > 0:
+                                st.error("❌ La importación tuvo errores.")
+
+                            if r["detalles"]:
+                                with st.expander("Ver detalles"):
+                                    for det in r["detalles"][:50]:
+                                        if "duplicado" in det.lower():
+                                            st.error(f"- {det}")
+                                        else:
+                                            st.write(f"- {det}")
+                                    if len(r["detalles"]) > 50:
+                                        st.write(f"... y {len(r['detalles']) - 50} más")
+
+                            if r["nuevos"] > 0 or r["actualizados"] > 0:
+                                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error al leer el archivo: {e}")
+
+        with st.container(border=True):
+            st.markdown("### 📋 Checklist quincenal")
+            st.caption("Rutina recomendada cada 15 días para mantener la base actualizada.")
+            
+            st.checkbox("1. Revisar productos vigentes del Dashboard", disabled=True)
+            st.checkbox("2. Desactivar productos que salgan de venta", disabled=True)
+            st.checkbox("3. Agregar productos nuevos al monitoreo", disabled=True)
+            st.checkbox("4. Relevar precios de competidores", disabled=True)
+            st.checkbox("5. Completar Excel con precios nuevos", disabled=True)
+            st.checkbox("6. Importar y verificar estados", disabled=True)
+            
+            st.caption("💡 *Esta es una guía de referencia. Completá las tareas según tu flujo real.*")
+
 
 def pagina_configuracion():
     cfg = excel_service.cargar_config()
     render_hero(
-        "Configuración",
-        "Parámetros manuales del sistema para criterio de cálculo y operación.",
+        "Configuracion",
+        "Parametros manuales del sistema para criterio de calculo y operacion.",
         [
             ("oficial", formato_moneda(cfg.get("dolar_oficial", 0)), "base actual"),
             ("blue", formato_moneda(cfg.get("dolar_blue", 0)), "referencia alterna"),
@@ -1252,12 +1724,24 @@ def pagina_configuracion():
             ("frecuencia", str(cfg.get("frecuencia_monitoreo_minutos", "-")), "minutos"),
         ],
     )
-    render_section_header("Sistema", "Parámetros de cálculo", "Actualizá las referencias centrales del monitoreo.")
+    
+    with st.expander("Ayuda: como impacta el tipo de cambio"):
+        st.markdown("""
+        **El dolar de referencia se usa para convertir costos a pesos.**
+        
+        Si este valor no refleja como realmente financiás la operacion, la rentabilidad mostrada puede quedar distorsionada.
+        
+        - **Dolar oficial:** usalo si tus costos o financiamiento estan en dolar oficial.
+        - **Dolar blue:** usalo si tus costos o financiamiento estan en dolar paralelo.
+        - **Modo:** define cual de los dos se usa para calcular costo y margen.
+        """)
+    
+    render_section_header("Sistema", "Parametros de calculo", "Actualiza las referencias centrales del monitoreo.")
     c1, c2, c3 = st.columns(3)
     with c1:
-        oficial = st.number_input("Dólar Oficial", value=float(cfg.get("dolar_oficial", 1430)), step=10.0)
+        oficial = st.number_input("Dolar Oficial", value=float(cfg.get("dolar_oficial", 1430)), step=10.0)
     with c2:
-        blue = st.number_input("Dólar Blue", value=float(cfg.get("dolar_blue", 0)), step=10.0)
+        blue = st.number_input("Dolar Blue", value=float(cfg.get("dolar_blue", 0)), step=10.0)
     with c3:
         modo_idx = 0 if cfg.get("dolar_modo", "oficial") == "oficial" else 1
         modo = st.selectbox("Modo", ["oficial", "blue"], index=modo_idx)
@@ -1350,6 +1834,18 @@ def render_mobile_dock():
                 st.session_state.mobile_actions_open = False
                 st.rerun()
         
+        c_act5, c_act6 = st.columns(2)
+        with c_act5:
+            if st.button("📥 Importar desde Excel", use_container_width=True):
+                st.session_state.mobile_page = "Operaciones"
+                st.session_state.operacion_default = 4
+                st.session_state.mobile_actions_open = False
+                st.rerun()
+        with c_act6:
+            if st.button("🚪 Cerrar sesión", use_container_width=True):
+                st.session_state.autenticado = False
+                st.rerun()
+        
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1358,6 +1854,11 @@ def render_mobile_dock():
 
 
 def main():
+    # Verificar autenticación
+    if not st.session_state.get("autenticado", False):
+        render_login()
+        return
+    
     if "mobile_page" not in st.session_state:
         st.session_state.mobile_page = "Dashboard"
     
@@ -1371,6 +1872,8 @@ def main():
         pagina_operaciones()
     elif pagina == "Configuración":
         pagina_configuracion()
+    
+    render_footer()
 
 
 if __name__ == "__main__":

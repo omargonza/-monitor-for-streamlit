@@ -3,6 +3,7 @@ Servicio de lectura y escritura de Excel.
 """
 
 from datetime import datetime
+from io import BytesIO
 import os
 import sys
 
@@ -499,3 +500,218 @@ def registrar_cambio_config(clave: str, anterior: str, nuevo: str) -> bool:
         valor_anterior=anterior,
         valor_nuevo=nuevo,
     )
+
+
+# =========================================================
+# IMPORTACIÓN MASIVA
+# =========================================================
+
+COLUMNAS_OBLIGATORIAS = [
+    "codigo_reyes",
+    "descripcion_reyes",
+    "competidor",
+    "costo_usd",
+    "precio_reyes_ars",
+    "margen_minimo_pct",
+]
+
+COLUMNAS_OPCIONALES = [
+    "precio_competidor_actual_ars",
+    "url_categoria_competidor",
+    "referencia_manual_competidor",
+    "activo",
+]
+
+
+def importar_productos_desde_excel(df_import: pd.DataFrame) -> dict:
+    """
+    Importa productos desde un DataFrame.
+    
+    Reglas:
+    - Columnas obligatorias: codigo_reyes, descripcion_reyes, competidor, costo_usd, precio_reyes_ars, margen_minimo_pct
+    - Columnas opcionales: precio_competidor_actual_ars, url_categoria_competidor, referencia_manual_competidor, activo
+    - Si falta precio_competidor_actual_ars: se importa como 0 (quedará SIN_DATO)
+    - Si el producto ya existe: se actualiza
+    - Si el producto no existe: se crea nuevo
+    - Si el mismo producto+competidor aparece dos veces: se marca como error
+    
+    Retorna dict con:
+    - nuevos: cantidad de productos creados
+    - actualizados: cantidad de productos actualizados
+    - errores: cantidad de filas con error
+    - omitidos: cantidad de filas omitidas
+    - total: total de filas procesadas
+    - sin_dato: cantidad de productos sin precio competidor
+    - duplicados: cantidad de duplicados detectados en el archivo
+    - detalles: lista de mensajes de resultado
+    """
+    resultado = {
+        "nuevos": 0,
+        "actualizados": 0,
+        "errores": 0,
+        "omitidos": 0,
+        "total": 0,
+        "sin_dato": 0,
+        "duplicados": 0,
+        "detalles": [],
+    }
+    
+    if df_import is None or df_import.empty:
+        resultado["detalles"].append("El archivo está vacío.")
+        return resultado
+    
+    cols_present = [c.strip().lower() for c in df_import.columns]
+    cols_faltantes = [c for c in COLUMNAS_OBLIGATORIAS if c.lower() not in cols_present]
+    
+    if cols_faltantes:
+        resultado["detalles"].append(f"Columnas obligatorias faltantes: {', '.join(cols_faltantes)}")
+        resultado["errores"] = len(df_import)
+        return resultado
+    
+    df_existente = cargar_productos_completo()
+    
+    claves_vistas = set()
+    
+    for idx, row in df_import.iterrows():
+        try:
+            codigo = str(row.get("codigo_reyes", "")).strip()
+            desc = str(row.get("descripcion_reyes", "")).strip()
+            competidor = str(row.get("competidor", "")).strip()
+            
+            if not codigo or codigo.lower() in ["nan", "none", ""]:
+                resultado["detalles"].append(f"Fila {idx+2}: Falta código.")
+                resultado["errores"] += 1
+                continue
+                
+            if not desc or desc.lower() in ["nan", "none", ""]:
+                resultado["detalles"].append(f"Fila {idx+2}: Falta descripción.")
+                resultado["errores"] += 1
+                continue
+                
+            if not competidor or competidor.lower() in ["nan", "none", ""]:
+                resultado["detalles"].append(f"Fila {idx+2}: Falta competidor.")
+                resultado["errores"] += 1
+                continue
+            
+            clave = (codigo.lower(), competidor.lower())
+            if clave in claves_vistas:
+                resultado["detalles"].append(f"Fila {idx+2}: DUPLICADO - {codigo} / {competidor} aparece más de una vez en el archivo.")
+                resultado["duplicados"] += 1
+                resultado["errores"] += 1
+                continue
+            claves_vistas.add(clave)
+            
+            try:
+                costo_usd = float(row.get("costo_usd", 0) or 0)
+            except:
+                resultado["detalles"].append(f"Fila {idx+2}: Costo USD inválido.")
+                resultado["errores"] += 1
+                continue
+                
+            try:
+                precio_reyes = float(row.get("precio_reyes_ars", 0) or 0)
+            except:
+                resultado["detalles"].append(f"Fila {idx+2}: Precio Reyes inválido.")
+                resultado["errores"] += 1
+                continue
+                
+            try:
+                margen_min = float(row.get("margen_minimo_pct", 20) or 20)
+            except:
+                resultado["detalles"].append(f"Fila {idx+2}: Margen mínimo inválido.")
+                resultado["errores"] += 1
+                continue
+            
+            precio_comp_raw = row.get("precio_competidor_actual_ars", 0)
+            try:
+                precio_comp = float(precio_comp_raw) if precio_comp_raw else 0
+            except:
+                precio_comp = 0
+            
+            if precio_comp == 0 or precio_comp is None:
+                resultado["sin_dato"] += 1
+            
+            url_cat = str(row.get("url_categoria_competidor", "") or "").strip()
+            if url_cat.lower() in ["nan", "none", ""]:
+                url_cat = ""
+            
+            ref_manual = str(row.get("referencia_manual_competidor", "") or "").strip()
+            if ref_manual.lower() in ["nan", "none", ""]:
+                ref_manual = ""
+            
+            activo_raw = row.get("activo", "SI")
+            activo = "SI"
+            if str(activo_raw).strip().lower() in ["no", "0", "false", "inactivo"]:
+                activo = "NO"
+            
+            codigo_norm = codigo.lower()
+            competidor_norm = competidor.lower()
+            
+            mask_existe = (
+                df_existente["codigo_reyes"].astype(str).str.strip().str.lower() == codigo_norm
+            ) & (
+                df_existente["competidor"].astype(str).str.strip().str.lower() == competidor_norm
+            )
+            
+            producto = {
+                "codigo_reyes": codigo,
+                "descripcion_reyes": desc,
+                "competidor": competidor,
+                "costo_usd": costo_usd,
+                "precio_reyes_ars": precio_reyes,
+                "margen_minimo_pct": margen_min,
+                "precio_competidor_actual_ars": precio_comp,
+                "precio_competidor_anterior_ars": 0,
+                "url_categoria_competidor": url_cat,
+                "referencia_manual_competidor": ref_manual,
+                "activo": activo,
+            }
+            
+            if mask_existe.any():
+                idx_existente = df_existente[mask_existe].index[0]
+                for col, valor in producto.items():
+                    df_existente.at[idx_existente, col] = valor
+                resultado["actualizados"] += 1
+                resultado["detalles"].append(f"Actualizado: {codigo} / {competidor}")
+            else:
+                df_existente = pd.concat([df_existente, pd.DataFrame([producto])], ignore_index=True)
+                resultado["nuevos"] += 1
+                resultado["detalles"].append(f"Nuevo: {codigo} / {competidor}")
+                
+        except Exception as e:
+            resultado["detalles"].append(f"Fila {idx+2}: Error - {str(e)}")
+            resultado["errores"] += 1
+    
+    resultado["total"] = len(df_import)
+    resultado["omitidos"] = resultado["errores"]
+    
+    if resultado["nuevos"] > 0 or resultado["actualizados"] > 0:
+        guardado = guardar_excel(df_existente, config.HOJAS["MONITOREO"])
+        if not guardado:
+            resultado["detalles"].append("ERROR: No se pudo guardar en Excel.")
+            resultado["nuevos"] = 0
+            resultado["actualizados"] = 0
+    
+    return resultado
+
+
+def generar_plantilla_importacion() -> bytes:
+    """Genera un archivo Excel con la plantilla de importación."""
+    data = {
+        "codigo_reyes": ["EJEMPLO001", "EJEMPLO002"],
+        "descripcion_reyes": ["Producto de ejemplo 1", "Producto de ejemplo 2"],
+        "competidor": ["Competidor A", "Competidor B"],
+        "costo_usd": [10.00, 25.50],
+        "precio_reyes_ars": [15000, 38000],
+        "margen_minimo_pct": [20, 20],
+        "precio_competidor_actual_ars": [14500, 36000],
+        "url_categoria_competidor": ["", ""],
+        "referencia_manual_competidor": ["", ""],
+        "activo": ["SI", "SI"],
+    }
+    df = pd.DataFrame(data)
+    
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="Productos", index=False)
+    return buffer.getvalue()
